@@ -8,11 +8,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/timeglass/glass/_vendor/github.com/hashicorp/errwrap"
 
-	daemon "github.com/timeglass/glass/glass-daemon"
+	"github.com/timeglass/glass/timer"
+	"github.com/timeglass/glass/vcs"
 )
 
 var ErrRequestFailed = errors.New("Couldn't reach background service, did you install it using 'glass install'?")
@@ -31,8 +33,8 @@ func NewClient() *Client {
 }
 
 func (c *Client) Call(method string, params url.Values) ([]byte, error) {
-	loc := fmt.Sprintf("%s/api/%s?%s", c.endpoint, method, params.Encode())
-	resp, err := c.Get(loc)
+	loc := fmt.Sprintf("%s/api/%s", c.endpoint, method)
+	resp, err := c.Post(loc, "application/x-www-form-urlencoded", bytes.NewBuffer([]byte(params.Encode())))
 	if err != nil {
 		return nil, ErrRequestFailed
 	}
@@ -101,11 +103,29 @@ func (c *Client) DeleteTimer(dir string) error {
 	return nil
 }
 
-func (c *Client) ResetTimer(dir string) error {
+func (c *Client) ResetTimer(dir string, staged, unstaged bool) error {
+	params := url.Values{}
+	params.Set("dir", dir)
+	params.Set("staged", strconv.FormatBool(staged))
+	params.Set("unstaged", strconv.FormatBool(unstaged))
+
+	_, err := c.Call("timers.reset", params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) StageTimer(dir string, files map[string]*vcs.StagedFile) error {
 	params := url.Values{}
 	params.Set("dir", dir)
 
-	_, err := c.Call("timers.reset", params)
+	for _, sf := range files {
+		params.Add("files", fmt.Sprintf("%s:%d", sf.Path(), sf.Date().UnixNano()))
+	}
+
+	_, err := c.Call("timers.stage", params)
 	if err != nil {
 		return err
 	}
@@ -125,8 +145,8 @@ func (c *Client) PauseTimer(dir string) error {
 	return nil
 }
 
-func (c *Client) ReadTimer(dir string) (*daemon.Timer, error) {
-	timers := []*daemon.Timer{}
+func (c *Client) ReadTimer(dir string) (*timer.Timer, error) {
+	timers := []*timer.Timer{}
 	params := url.Values{}
 	params.Set("dir", dir)
 

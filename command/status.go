@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
@@ -11,7 +12,7 @@ import (
 	"github.com/timeglass/glass/_vendor/github.com/hashicorp/errwrap"
 
 	"github.com/timeglass/glass/config"
-	daemon "github.com/timeglass/glass/glass-daemon"
+	"github.com/timeglass/glass/timer"
 	"github.com/timeglass/glass/vcs"
 )
 
@@ -57,7 +58,7 @@ func (c *Status) Run(ctx *cli.Context) error {
 		return errwrap.Wrapf("Failed to setup VCS: {{err}}", err)
 	}
 
-	sysdir, err := daemon.SystemTimeglassPath()
+	sysdir, err := timer.SystemTimeglassPath()
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Failed to get system config path: {{err}}"), err)
 	}
@@ -82,17 +83,17 @@ func (c *Status) Run(ctx *cli.Context) error {
 		c.Println("A new version is available, please upgrade: https://github.com/timeglass/glass/releases")
 	}
 
-	//fetch information on the timer specific to this directory
+	//fetch information on the timer specific to this directory.
 	c.Printf("Fetching timer info...")
-	timer, err := client.ReadTimer(vc.Root())
+	t, err := client.ReadTimer(vc.Root())
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Failed to fetch timer: {{err}}"), err)
 	}
 
-	if reason := timer.HasFailed(); reason != "" {
-		c.Printf("Timer has failed: %s", reason)
+	if terr := t.Error(); terr != nil {
+		c.Printf("Timer has failed: %s", terr)
 	} else {
-		if timer.IsPaused() {
+		if t.IsPaused() {
 			c.Printf("Timer is currently: PAUSED")
 		} else {
 			c.Printf("Timer is currently: RUNNING")
@@ -107,21 +108,59 @@ func (c *Status) Run(ctx *cli.Context) error {
 	//we got some template specified
 	if tmpls != "" {
 
-		//parse temlate and only report error if we're talking to a human
+		//parse template and only report error if we're talking to a human
 		tmpl, err := template.New("commit-msg").Parse(tmpls)
 		if err != nil {
 			return errwrap.Wrapf(fmt.Sprintf("Failed to parse commit_message: '%s' in configuration as a text/template: {{err}}", conf.CommitMessage), err)
 		}
 
 		//execute template and write to stdout
-		err = tmpl.Execute(os.Stdout, timer.Time())
+		err = tmpl.Execute(os.Stdout, t.Time())
 		if err != nil {
-			return errwrap.Wrapf(fmt.Sprintf("Failed to execute commit_message: template for time '%s': {{err}}", timer.Time()), err)
+			return errwrap.Wrapf(fmt.Sprintf("Failed to execute commit_message: template for time '%s': {{err}}", t.Time()), err)
 		}
 
 	} else {
 		//just print
-		c.Printf("Timer reads: %s", timer.Time())
+		c.Printf("Total time reads: %s", t.Time())
+
+		all := t.Distributor().Timelines()
+		unstaged := map[string]*timer.Timeline{}
+		staged := map[string]*timer.Timeline{}
+		for path, tl := range all {
+			if tl.Unstaged() != 0 {
+				unstaged[path] = tl
+			}
+
+			if tl.Staged() != 0 {
+				staged[path] = tl
+			}
+		}
+
+		if len(staged) > 0 {
+			c.Printf("Staged time:")
+			for path, tl := range staged {
+				rel, err := filepath.Rel(vc.Root(), path)
+				if err != nil {
+					c.Printf("Failed to rel dir: %s", err)
+				}
+
+				c.Printf("- %s: %s", rel, tl.Staged())
+			}
+		}
+
+		if len(unstaged) > 0 {
+			c.Printf("Unstaged time:")
+			for path, tl := range unstaged {
+				rel, err := filepath.Rel(vc.Root(), path)
+				if err != nil {
+					c.Printf("Failed to rel dir: %s", err)
+				}
+
+				c.Printf("- %s: %s", rel, tl.Unstaged())
+			}
+		}
+
 	}
 
 	return nil

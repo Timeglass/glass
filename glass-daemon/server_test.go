@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/timeglass/glass/timer"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,10 +17,9 @@ func TestApiRoot(t *testing.T) {
 	dir, err := ioutil.TempDir("", fmt.Sprintf("glass_keeper"))
 	assert.NoError(t, err)
 
-	k, err := NewKeeper(dir)
+	k, err := timer.NewKeeper(dir)
 	assert.NoError(t, err)
 
-	go k.Start()
 	defer k.Stop()
 
 	svr, err := NewServer(":0", k)
@@ -38,10 +39,9 @@ func TestCreateInfoRemoveTimer(t *testing.T) {
 	dir, err := ioutil.TempDir("", fmt.Sprintf("glass_keeper"))
 	assert.NoError(t, err)
 
-	k, err := NewKeeper(dir)
+	k, err := timer.NewKeeper(dir)
 	assert.NoError(t, err)
 
-	go k.Start()
 	defer k.Stop()
 
 	svr, err := NewServer(":0", k)
@@ -59,7 +59,7 @@ func TestCreateInfoRemoveTimer(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	//Info
+	// Info
 	r, err = http.NewRequest("GET", "/api/timers.info?"+params.Encode(), nil)
 	assert.NoError(t, err)
 	w = httptest.NewRecorder()
@@ -67,9 +67,11 @@ func TestCreateInfoRemoveTimer(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "latency")
+	assert.Contains(t, w.Body.String(), "distributor")
 
 	//Delete
 	r, err = http.NewRequest("GET", "/api/timers.delete?"+params.Encode(), nil)
+
 	assert.NoError(t, err)
 	w = httptest.NewRecorder()
 	svr.timersDelete(w, r)

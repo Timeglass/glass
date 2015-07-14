@@ -8,15 +8,20 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/timeglass/glass/_vendor/github.com/hashicorp/errwrap"
+
+	"github.com/timeglass/glass/timer"
+	"github.com/timeglass/glass/vcs"
 )
 
 var CheckVersionURL = "https://s3-eu-west-1.amazonaws.com/timeglass/version/VERSION?dversion=" + Version
 
 type Server struct {
-	keeper            *Keeper
+	keeper            *timer.Keeper
 	httpb             string
 	listener          net.Listener
 	mostRecentVersion string
@@ -36,7 +41,7 @@ func (s *Server) timersDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		for _, dir := range dirs {
-			err := s.keeper.Remove(dir)
+			err := s.keeper.Discard(dir)
 			if err != nil {
 				s.Respond(w, errwrap.Wrapf("Failed to remove timer: {{err}}", err))
 				return
@@ -59,13 +64,7 @@ func (s *Server) timersCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		for _, dir := range dirs {
-			t, err := NewTimer(dir)
-			if err != nil {
-				s.Respond(w, errwrap.Wrapf("Failed to create new timer: {{err}}", err))
-				return
-			}
-
-			err = s.keeper.Add(t)
+			err = s.keeper.Measure(dir)
 			if err != nil {
 				s.Respond(w, errwrap.Wrapf("Failed to add new timer to keeper: {{err}}", err))
 				return
@@ -88,7 +87,7 @@ func (s *Server) timersPause(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		for _, dir := range dirs {
-			t, err := s.keeper.Get(dir)
+			t, err := s.keeper.Inspect(dir)
 			if err != nil {
 				s.Respond(w, errwrap.Wrapf("Failed get timer: {{err}}", err))
 				return
@@ -113,13 +112,60 @@ func (s *Server) timersReset(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		for _, dir := range dirs {
-			t, err := s.keeper.Get(dir)
+			t, err := s.keeper.Inspect(dir)
 			if err != nil {
 				s.Respond(w, errwrap.Wrapf("Failed get timer: {{err}}", err))
 				return
 			}
 
-			t.Reset()
+			opts := timer.ResetOpts{}
+			if res, _ := strconv.ParseBool(r.Form.Get("staged")); res {
+				opts.Staged = res
+			}
+
+			if res, _ := strconv.ParseBool(r.Form.Get("unstaged")); res {
+				opts.Unstaged = res
+			}
+
+			t.Reset(opts)
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) timersStage(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		s.Respond(w, err)
+		return
+	}
+
+	if dirs, ok := r.Form["dir"]; !ok {
+		s.Respond(w, fmt.Errorf("dir parameter is mandatory"))
+		return
+	} else {
+		for _, dir := range dirs {
+			t, err := s.keeper.Inspect(dir)
+			if err != nil {
+				s.Respond(w, errwrap.Wrapf("Failed get timer: {{err}}", err))
+				return
+			}
+
+			res := []*vcs.StagedFile{}
+			for _, fstr := range r.Form["files"] {
+				lindx := strings.LastIndex(fstr, ":")
+				tunix := fstr[(lindx + 1):]
+				tint, err := strconv.ParseInt(tunix, 10, 64)
+				if err != nil {
+					s.Respond(w, errwrap.Wrapf(fmt.Sprintf("Parse int '%s': {{err}}", tunix), err))
+					return
+				}
+
+				res = append(res, vcs.NewStagedFile(time.Unix(0, tint), "", fstr[:lindx]))
+			}
+
+			t.Stage(res)
 		}
 	}
 
@@ -133,13 +179,13 @@ func (s *Server) timersInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timers := []*Timer{}
+	timers := []*timer.Timer{}
 	if dirs, ok := r.Form["dir"]; !ok {
 		s.Respond(w, fmt.Errorf("dir parameter is mandatory"))
 		return
 	} else {
 		for _, dir := range dirs {
-			t, err := s.keeper.Get(dir)
+			t, err := s.keeper.Inspect(dir)
 			if err != nil {
 				s.Respond(w, errwrap.Wrapf("Failed to get timer: {{err}}", err))
 				return
@@ -164,7 +210,7 @@ func (s *Server) api(w http.ResponseWriter, r *http.Request) {
 	s.Respond(w, data)
 }
 
-func NewServer(httpb string, keeper *Keeper) (*Server, error) {
+func NewServer(httpb string, keeper *timer.Keeper) (*Server, error) {
 	l, err := net.Listen("tcp", httpb)
 	if err != nil {
 		return nil, errwrap.Wrapf(fmt.Sprintf("Failed to create listener on '%s': {{err}}", httpb), err)
@@ -185,6 +231,7 @@ func NewServer(httpb string, keeper *Keeper) (*Server, error) {
 	mux.HandleFunc("/api/timers.delete", s.timersDelete)
 	mux.HandleFunc("/api/timers.reset", s.timersReset)
 	mux.HandleFunc("/api/timers.info", s.timersInfo)
+	mux.HandleFunc("/api/timers.stage", s.timersStage)
 	return s, nil
 }
 
