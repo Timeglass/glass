@@ -27,7 +27,7 @@ A timer runs in the background and increments by a set amount of time each tick:
 ## Commit Message Template
 __key__: `commit_message`  
 
-This options allows you to specify how Timeglass should write time measurments to commit messages. To disable this feature completely, provide an empty string, e.g: `"commit_message": ""`
+This options allows you to specify how Timeglass should write time measurements to commit messages. To disable this feature completely, provide an empty string, e.g: `"commit_message": ""`
 
 The template is parsed using the standard Go [text/templating](http://golang.org/pkg/text/template/), but you probably only need to know that `{{.}}` is replaced by a human readable representation of the measured time, e.g: `1h5m2s` 
 
