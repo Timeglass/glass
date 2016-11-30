@@ -25,7 +25,7 @@ func SystemTimeglassPath() (string, error) {
 		return "", fmt.Errorf("Expected environmnet variable 'PROGRAMDATA' or 'ALLUSERPROFILE'")
 	} else if runtime.GOOS == "darwin" {
 		//osx we can actually create user specific services, and as such, store data for the user specifically
-		return filepath.Join("/", "Library", "Timeglass"), nil
+		return filepath.Join("~", "Library", "Logs"), nil
 	} else if runtime.GOOS == "linux" {
 		return filepath.Join("/var/lib", "timeglass"), nil
 	}
