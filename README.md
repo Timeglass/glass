@@ -21,8 +21,8 @@ __Currently Supported:__
 1. Download and install the latest release using any one of your preferred methods:
 	
 	1. Automatic [installers](https://github.com/timeglass/glass/releases/latest) for 64bit  _OSX_ and _Windows_ 
-	2. [Manual installion](/docs/manual_installation.md) with 64bit precompiled Binaries for OSX, Linux and Windows 
-	3. [Manual installion](/docs/manual_installation.md) by __building from source__ for all other architectures
+	2. [Manual installation](/docs/manual_installation.md) with 64bit precompiled Binaries for OSX, Linux and Windows 
+	3. [Manual installation](/docs/manual_installation.md) by __building from source__ for all other architectures
 
   _Note: For Windows, the documentation assumes you're using Git through a [bash-like CLI](https://msysgit.github.io/) but nothing about the implementation prevents you from using another approach._
 
