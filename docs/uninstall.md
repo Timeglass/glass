@@ -1,5 +1,6 @@
 # Uninstalling
-First off, if you're uninstalling because of some unexpectedly behaviour feel free to create [an issue](https://github.com/timeglass/glass/issues) that explains your problems. I love being in converstation with the user and create the best experience possible. 
+
+First off, if you're uninstalling because of some unexpectedly behaviour feel free to create [an issue](https://github.com/timeglass/glass/issues) that explains your problems. I love being in converstation with the user and create the best experience possible.
 
 That being said, you can do the following in order to remove Timeglass from a single repository:
 
@@ -7,7 +8,7 @@ That being said, you can do the following in order to remove Timeglass from a si
 2. Remove the git hooks timeglass creates from the `.git/hooks` directory of your repo. The following files are created during installation:
 
      - .git/hooks/prepare-commit-msg
-     - .git/hooks/post-commit 
+     - .git/hooks/post-commit
      - .git/hooks/pre-push
 
 If you would like to continue and remove Timeglass from your system entirely, you can continue with the following:

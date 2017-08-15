@@ -1,5 +1,6 @@
-#Querying your Measurements
-_Timeglass_ attaches the time you spent as metadata to Git commits. This means you have the full power of Git at your disposal when it comes to querying. This also means that retrieving data will always consists of two steps: 
+# Querying your Measurements
+
+_Timeglass_ attaches the time you spent as metadata to Git commits. This means you have the full power of Git at your disposal when it comes to querying. This also means that retrieving data will always consists of two steps:
 
 1. First, select the work you're interested in by fetching a list of commit hashes (seperated by newlines) from Git using either `git rev-list` or `git log --pretty=%H`.
 2. Second, pipe this list into `glass sum` to add all time entries together. It will output thet total time in a human readable format (e.g 1h59m10s)
@@ -33,6 +34,3 @@ Because querying Git can be a science in it own right we included some common pa
 	git rev-list d2192a058^..d2192a058 | glass sum
 
 NOTE: To show all merges that occured: `git log --merges --format=oneline`
-
-
-
