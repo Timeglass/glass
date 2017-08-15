@@ -1,4 +1,5 @@
 # Manual Installation
+
 If you're on linx and/or like to have more control over how you install Timeglass we provide two ways for manual installation. If you have a 64bit architecture it is possible to just [download the prebuild binaries](https://github.com/timeglass/glass/releases/latest) and go to step 2, else you should build from source.
 
 ## Step 1: Building from Source (optional)
@@ -14,7 +15,7 @@ The source code will now be in your workspace and binaries are found in `$GOPATH
 
 ## Step 2: Placing the Binaries in your PATH
 
-If you downloaded the prebuild binaries you'll first need to unzip them and the copy the contents to a directory thats in your PATH (e.g. /usr/local/bin). If you build from source the binaries are probably already in your path, if not you must copy or link them there yourself. 
+If you downloaded the prebuild binaries you'll first need to unzip them and the copy the contents to a directory thats in your PATH (e.g. /usr/local/bin). If you build from source the binaries are probably already in your path, if not you must copy or link them there yourself.
 
 Check that this was done successfull by opening a new terminal window and running: `glass`. You should see all the *Timeglass* commands that are now available to you.
 
@@ -25,4 +26,4 @@ An important part of *Timeglass* is the monitoring of file system activity. For 
 
 _NOTE1: **On OSX and linux** this service is currently installed for all accounts and requires you to use sudo: `sudo glass install`_
 
-_NOTE2: **On Windows** this service requires administration privileges so either 'run as Administrator' or log in as the Administrator and run the install command_ 
+_NOTE2: **On Windows** this service requires administration privileges so either 'run as Administrator' or log in as the Administrator and run the install command_
