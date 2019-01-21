@@ -1,4 +1,4 @@
-#Querying your Measurements
+# Querying your Measurements
 _Timeglass_ attaches the time you spent as metadata to Git commits. This means you have the full power of Git at your disposal when it comes to querying. This also means that retrieving data will always consists of two steps: 
 
 1. First, select the work you're interested in by fetching a list of commit hashes (seperated by newlines) from Git using either `git rev-list` or `git log --pretty=%H`.
